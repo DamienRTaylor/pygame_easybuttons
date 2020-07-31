@@ -3,14 +3,6 @@ import pygame
 pygame.init()
 pygame.font.init()
 
-
-def createButton(button_type, *args):
-        existing_button_types = [DoActionOnClick,DoActionStayActiveOnclick,ShowChildrenOnClick]
-        if button_type in existing_button_types:
-            return button_type(*args)
-        else:
-            raise ValueError("button_type argument must be one of the button types")
-
 #when a button needs to have it's state set to inactive after a certain time period it's added to a list called buttonsToHandleActiveCountdownOn
 buttonsToHandleActiveCountdownOn = []
 #these two functions handle counting down and then setting the button to inactive after a time has elapsed
@@ -22,7 +14,7 @@ def handleButtonActiveCountdown_timed() -> None:#this one uses a time in seconds
         button.prev_inactive_check = nowtime
         if button.until_inactive <= 0:
             button.is_active = False
-            button.until_inactive = button.until_inactive_original # resets this back to the original time 
+            button.until_inactive = button.until_inactive_original # resets this back to the original time
             buttonsToHandleActiveCountdownOn.remove(button)
 
 def handleButtonActiveCountdown_frames() -> None: #this one does it on frames for games on locked frames
@@ -31,7 +23,7 @@ def handleButtonActiveCountdown_frames() -> None: #this one does it on frames fo
         button.until_inactive -= 1
         if button.until_inactive == 0:
             button.is_active = False
-            button.until_inactive = button.until_inactive_original # resets this back to the original time 
+            button.until_inactive = button.until_inactive_original # resets this back to the original time
             buttonsToHandleActiveCountdownOn.remove(button)
 
 class Button:
@@ -68,10 +60,10 @@ class Button:
             if type(new_y_pos) is int:
                 self.y_pos = new_y_pos
             else:
-                raise TypeError("pos arguments must be None or of type int")
+                raise TypeError("pos arguments must be None or one of the ButtonType's")
 
     def setOffsetFromAnchorMode(self,axis: str ,anchor_type:int) -> None:
-        if anchor_type == anchor.CENTER:
+        if anchor_type == Anchor.CENTER:
             if axis.lower() == "x":
                 button_axis_length = self.active_bg.get_width()
                 text_axis_length = self.text.get_width()
@@ -83,16 +75,16 @@ class Button:
 
             return int((button_axis_length - text_axis_length)/2)
 
-        elif anchor_type in [anchor.LEFT,anchor.TOP]:
+        elif anchor_type in [Anchor.LEFT,Anchor.TOP]:
             return 0
 
-        elif anchor_type == anchor.RIGHT:
+        elif anchor_type == Anchor.RIGHT:
             return int(self.active_bg.get_width() - self.text.get_width())
-        elif anchor_type == anchor.BOTTOM:
+        elif anchor_type == Anchor.BOTTOM:
             return int(self.active_bg.get_height() - self.text.get_height())
-        
+
         else:
-            raise ValueError("Anchor argument must be one of the anchor types")
+            raise ValueError("Anchor argument must be one of the Anchor types")
 
 
 
@@ -112,6 +104,7 @@ class DoActionOnClick(Button):
             buttonsToHandleActiveCountdownOn.append(self)
             return self.on_click_action[0](*self.on_click_action[1])
 
+
 class DoActionStayActiveOnclick(Button):
     def __init__(self, text, text_anchor_x, text_anchor_y, active_bg, inactive_bg, x_pos, y_pos,on_click_to_active_action,on_click_to_inactive_action):
         super().__init__(text, text_anchor_x, text_anchor_y, active_bg, inactive_bg, x_pos, y_pos)
@@ -126,20 +119,92 @@ class DoActionStayActiveOnclick(Button):
             self.is_active = True
             return self.on_click_to_active_action[0](*self.on_click_to_active_action[1])
 
+
 class ShowChildrenOnClick(DoActionStayActiveOnclick):
     pass
 
-class ButtonType:
-    SHOW_CHILDREN_ONCLICK = ShowChildrenOnClick
-    STAY_ACTIVE_ONCLICK = DoActionStayActiveOnclick
-    DONT_STAY_ACTIVE_ONCLICK = DoActionOnClick
 
-class anchor:
+class Slider:
+    def __init__(self,slider_bg : pygame.Surface, slider_icon: pygame.Surface, slider_direction: int, x_pos: int, y_pos: int,min_value, max_value,return_format: str):
+        self.is_active = False
+        self.slider_bg = slider_bg
+        self.slider_icon = slider_icon
+        self.slider_direction = slider_direction
+        self.x_pos = x_pos
+        self.y_pos = y_pos
+        if slider_direction in [Direction.LEFT_TO_RIGHT, Direction.TOP_TO_BOTTOM]:
+            self.cursor_x_pos = x_pos
+            self.cursor_y_pos = y_pos
+        elif slider_direction == Direction.RIGHT_TO_LEFT:
+            self.cursor_x_pos = x_pos + (slider_bg.get_width() - slider_icon.get_width())
+            self.cursor_y_pos = y_pos
+        elif slider_direction == Direction.BOTTOM_TO_TOP:
+            self.cursor_x_pos = x_pos
+            self.cursor_y_pos = y_pos + (slider_bg.get_height() - slider_icon.get_height())
+        else:
+            raise ValueError("slider_direction must be one of the Direction. constants")
+        self.min_value = min_value
+        self.max_value = max_value
+        self.return_format = return_format
+
+    def changeActiveState(self):
+        self.is_active = not self.is_active
+
+    def move_slider(self,pos,return_slider_value = False):
+        if self.slider_direction in [Direction.LEFT_TO_RIGHT, Direction.RIGHT_TO_LEFT]:
+           cursor_pos = pos[0]
+           if cursor_pos <= (max_cursor_pos := (self.slider_bg.get_width() - self.slider_icon.get_width() + self.x_pos)):
+               if cursor_pos >= self.x_pos:
+                   self.cursor_x_pos = cursor_pos
+               else:
+                    self.cursor_x_pos = self.x_pos
+           else:
+                self.cursor_x_pos = max_cursor_pos
+
+        elif self.slider_direction in [Direction.TOP_TO_BOTTOM, Direction.BOTTOM_TO_TOP]:
+            cursor_pos = pos[1]
+            if cursor_pos <= (max_cursor_pos := (self.slider_bg.get_height() - self.slider_icon.get_height() + self.y_pos)):
+                if cursor_pos >= self.y_pos:
+                    self.cursor_y_pos = cursor_pos
+                else:
+                    self.cursor_y_pos = self.y_pos
+            else:
+                self.cursor_y_pos = max_cursor_pos
+        if return_slider_value:
+            return self.get_current_value()
+
+    def get_current_value(self):
+        if self.slider_direction == Direction.LEFT_TO_RIGHT:
+            return_value = self.min_value + (self.max_value - self.min_value) * (self.cursor_x_pos - self.x_pos)/(self.slider_bg.get_width()- self.slider_icon.get_width())
+        elif self.slider_direction == Direction.RIGHT_TO_LEFT:
+            return_value = self.min_value + (self.max_value - self.min_value) * (1 - (self.cursor_x_pos - self.x_pos)/(self.slider_bg.get_width()- self.slider_icon.get_width()))
+        elif self.slider_direction == Direction.TOP_TO_BOTTOM:
+            return_value = self.min_value + (self.max_value - self.min_value) * (self.cursor_y_pos - self.y_pos)/(self.slider_bg.get_height()- self.slider_icon.get_height())
+        elif self.slider_direction == Direction.BOTTOM_TO_TOP:
+            return_value = self.min_value + (self.max_value - self.min_value) * (1 - (self.cursor_y_pos - self.y_pos)/(self.slider_bg.get_height()- self.slider_icon.get_height()))
+        return self.return_format.format(return_value)
+
+    def isPosOverSliderIcon(self,pos):
+        return self.slider_icon.get_rect().move(self.cursor_x_pos,self.cursor_y_pos).collidepoint(pos)
+
+    def draw(self,surface):
+        surface.blit(self.slider_bg,(self.x_pos,self.y_pos))
+        surface.blit(self.slider_icon,(self.cursor_x_pos,self.cursor_y_pos))
+
+
+class Anchor:
     CENTER = 0
     LEFT = 1
     RIGHT = 2
     TOP = 3
     BOTTOM = 4
+
+
+class Direction:
+    TOP_TO_BOTTOM = 0
+    BOTTOM_TO_TOP = 1
+    LEFT_TO_RIGHT = 2
+    RIGHT_TO_LEFT = 3
 
 """
 writing documentation
