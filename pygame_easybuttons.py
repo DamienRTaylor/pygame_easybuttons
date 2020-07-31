@@ -126,6 +126,9 @@ class DoActionStayActiveOnclick(Button):
             self.is_active = True
             return self.on_click_to_active_action[0](*self.on_click_to_active_action[1])
 
+class ShowChildrenOnClick(DDoActionStayActiveOnclick):
+    pass
+
 class ButtonType:
     SHOW_CHILDREN_ONCLICK = 0
     STAY_ACTIVE_ONCLICK = DoActionStayActiveOnclick
