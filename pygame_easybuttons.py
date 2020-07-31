@@ -5,7 +5,7 @@ pygame.font.init()
 
 
 def createButton(button_type, *args):
-        existing_button_types = [DoActionOnClick,DoActionStayActiveOnclick]
+        existing_button_types = [DoActionOnClick,DoActionStayActiveOnclick,ShowChildrenOnClick]
         if button_type in existing_button_types:
             return button_type(*args)
         else:
@@ -126,11 +126,11 @@ class DoActionStayActiveOnclick(Button):
             self.is_active = True
             return self.on_click_to_active_action[0](*self.on_click_to_active_action[1])
 
-class ShowChildrenOnClick(DDoActionStayActiveOnclick):
+class ShowChildrenOnClick(DoActionStayActiveOnclick):
     pass
 
 class ButtonType:
-    SHOW_CHILDREN_ONCLICK = 0
+    SHOW_CHILDREN_ONCLICK = ShowChildrenOnClick
     STAY_ACTIVE_ONCLICK = DoActionStayActiveOnclick
     DONT_STAY_ACTIVE_ONCLICK = DoActionOnClick
 
