@@ -221,4 +221,5 @@ class Direction:
     BOTTOM_TO_TOP = 1
     LEFT_TO_RIGHT = 2
     RIGHT_TO_LEFT = 3
+    
 
