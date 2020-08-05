@@ -28,7 +28,7 @@ def handleButtonActiveCountdown_frames() -> None: #this one does it on frames fo
             buttonsToHandleActiveCountdownOn.remove(button)
 
 class Button: #base button class, not used on it's own but used for the useable buttons
-    def __init__(self,text: pygame.Surface, text_anchor_x: int, text_anchor_y: int, active_bg: pygame.Surface, inactive_bg: pygame.Surface, x_pos: int, y_pos:int):
+    def __init__(self,text: pygame.Surface, text_anchor_x: int, text_anchor_y: int, active_bg: pygame.Surface, inactive_bg: pygame.Surface, x_pos: int, y_pos:int,name:str):
         self.is_active = False
         self.text = text
         self.active_bg = active_bg
@@ -38,6 +38,7 @@ class Button: #base button class, not used on it's own but used for the useable 
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.rect = self.active_bg.get_rect().move(self.x_pos,self.y_pos)
+        self.name = name
 
     def draw(self,surface: pygame.Surface) -> None:
         if self.is_active:
@@ -94,12 +95,15 @@ class Button: #base button class, not used on it's own but used for the useable 
         else:
             raise ValueError("Anchor argument must be one of the Anchor types")
 
+    def getName(self) -> str:
+        return self.name
+
 
 
 class DoActionOnClick(Button):
     def __init__(self, text: pygame.Surface, text_anchor_x: int, text_anchor_y: int, active_bg: pygame.Surface, inactive_bg: pygame.Surface ,x_pos: int,y_pos: int,
-                 on_click_action: list ,until_inactive: float):
-        super().__init__(text, text_anchor_x, text_anchor_y, active_bg, inactive_bg,x_pos,y_pos)
+                 on_click_action: list ,until_inactive: float,name:str):
+        super().__init__(text, text_anchor_x, text_anchor_y, active_bg, inactive_bg,x_pos,y_pos,name)
         self.on_click_action = on_click_action
         #this is used by the handle animation function to make the button unclicked
         self.until_inactive_original = until_inactive #this one isn't changed so the line below can be reset when it reaches 0
@@ -114,9 +118,9 @@ class DoActionOnClick(Button):
             return self.on_click_action[0](*self.on_click_action[1])
 
 
-class DoActionStayActiveOnclick(Button):
-    def __init__(self, text, text_anchor_x, text_anchor_y, active_bg, inactive_bg, x_pos, y_pos,on_click_to_active_action,on_click_to_inactive_action):
-        super().__init__(text, text_anchor_x, text_anchor_y, active_bg, inactive_bg, x_pos, y_pos)
+class DoActionStayActiveOnClick(Button):
+    def __init__(self, text, text_anchor_x, text_anchor_y, active_bg, inactive_bg, x_pos, y_pos,on_click_to_active_action,on_click_to_inactive_action,name:str):
+        super().__init__(text, text_anchor_x, text_anchor_y, active_bg, inactive_bg, x_pos, y_pos,name)
         self.on_click_to_active_action = on_click_to_active_action
         self.on_click_to_inactive_action = on_click_to_inactive_action
 
@@ -128,8 +132,58 @@ class DoActionStayActiveOnclick(Button):
             return self.on_click_to_active_action[0](*self.on_click_to_active_action[1])
 
 
-class ShowChildrenOnClick(DoActionStayActiveOnclick):
-    pass
+
+class RadioBox:
+    def __init__(self,options:list,active_bg,inactive_bg,x_pos,y_pos,direction,gap_between_options,name):
+        self.buttons = []
+        x_pos = x_pos
+        y_pos = y_pos
+        if direction == Direction.VERTICAL:
+            y_change = active_bg.get_height() + gap_between_options
+            x_change = 0
+        elif direction == Direction.HORIZONTAL:
+            y_change = 0
+            x_change = active_bg.get_width() + gap_between_options
+
+        for button_settings in options: #List of lists with each inner list containing [button object, the function+ args to do when that part is set to active
+            self.buttons.append(
+                (Button(button_settings[0], button_settings[1],button_settings[2],active_bg,inactive_bg,x_pos,y_pos,button_settings[4]),button_settings[3]) 
+            )
+            x_pos+= x_change
+            y_pos+= y_change
+
+        self.active_button = None
+        self.name = name
+
+    def isPosOverButton(self,pos) -> Button:
+        for button in self.buttons:
+            if button[0].isPosOverButton(pos):
+                return button
+        return None
+
+    def click(self,clicked_button):
+        if clicked_button.is_active == False:
+            for button in self.buttons:
+                if clicked_button is not button[0]:
+                    button[0].is_active = False
+                else:
+                    button[0].is_active = True
+                    response = button[1][0](*button[1][1])
+                    self.active_button = button
+            return response
+
+    def draw(self,surface) -> None:
+        for button in self.buttons:
+            button[0].draw(surface)
+
+    def getActiveButtonName(self) -> str:
+        if self.active_button is not None:
+            return self.active_button[0].name
+        else: return None
+
+    def getName(self) -> str:
+        return self.name
+        
 
 
 class Slider:
@@ -221,5 +275,7 @@ class Direction:
     BOTTOM_TO_TOP = 1
     LEFT_TO_RIGHT = 2
     RIGHT_TO_LEFT = 3
+    HORIZONTAL = 4
+    VERTICAL = 5
     
 
