@@ -51,7 +51,7 @@ class Button: #base button class, not used on it's own but used for the useable 
         #pygame.draw.rect(surface,(0,255,0),self.rect,2) #drawing outline of the rect used to dectect a click for debugging
 
     def isPosOverButton(self,pos:list) -> bool:
-        return self.rect.collidepoint(pos)
+        return bool(self.rect.collidepoint(pos))
 
     def changePos(self,new_x_pos = None,new_y_pos = None) -> None:
         x_change = 0
@@ -158,7 +158,7 @@ class RadioBox:
     def isPosOverButton(self,pos) -> Button:
         for button in self.buttons:
             if button[0].isPosOverButton(pos):
-                return button
+                return button[0]
         return None
 
     def click(self,clicked_button):
@@ -183,6 +183,11 @@ class RadioBox:
 
     def getName(self) -> str:
         return self.name
+
+    def getButtonByName(self,name: str) -> Button:
+        for button in self.buttons:
+            if button[0].name == name:
+                return button[0]
         
 
 
